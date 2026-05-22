@@ -21,6 +21,7 @@ export async function connectDB(): Promise<void> {
     logger.info(`MongoDB already connected (${mongoose.connection.host})`);
     return;
   }
+
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= MAX_CONNECT_ATTEMPTS; attempt += 1) {
