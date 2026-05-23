@@ -5,6 +5,8 @@ import { queuePriceRefresh } from '../queues';
 import { runDailyTrackingSweep } from '../services/product.service';
 import { TrackingStatuses } from '../constants';
 import { logger } from '../utils/logger';
+import { startComparisonCron } from './comparison.cron';
+import { startSmartNotificationCron } from './notification.cron';
 
 let dailyTrackingTask: ScheduledTask | null = null;
 
@@ -39,6 +41,9 @@ export function startSchedulers(): void {
   });
 
   logger.info(`Started daily tracking scheduler (${env.PRICE_TRACKING_CRON}).`);
+  
+  startComparisonCron();
+  startSmartNotificationCron();
 }
 
 export function stopSchedulers(): void {

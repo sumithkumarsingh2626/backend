@@ -45,6 +45,13 @@ export const NotificationTypes = {
   PRICE_DROP: 'price_drop',
   TARGET_PRICE: 'target_price',
   SYSTEM: 'system',
+  MAJOR_PRICE_DROP: 'major_price_drop',
+  LOWEST_PRICE_EVER: 'lowest_price_ever',
+  WEEKEND_PREDICTION: 'weekend_prediction',
+  SALE_PREDICTION: 'sale_prediction',
+  BACK_IN_STOCK: 'back_in_stock',
+  SUDDEN_PRICE_INCREASE: 'sudden_price_increase',
+  TRENDING_PRODUCT: 'trending_product',
 } as const;
 
 export type NotificationType = (typeof NotificationTypes)[keyof typeof NotificationTypes];
@@ -79,6 +86,9 @@ export const SupportedStores = {
   BESTBUY: 'BestBuy',
   FLIPKART: 'Flipkart',
   ZARA: 'Zara',
+  MYNTRA: 'Myntra',
+  AJIO: 'Ajio',
+  CROMA: 'Croma',
 } as const;
 
 export type SupportedStoreName = (typeof SupportedStores)[keyof typeof SupportedStores];

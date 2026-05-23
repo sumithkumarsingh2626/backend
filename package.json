@@ -4,11 +4,11 @@
   "private": true,
   "description": "Price Drop Alert Tool — scalable Express + TypeScript API",
   "main": "dist/server.js",
- "scripts": {
-  "dev": "nodemon --exec tsx src/index.ts",
-  "build": "tsc",
-"start": "node dist/server.js"
-},
+  "scripts": {
+    "dev": "nodemon --exec tsx src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
   "engines": {
     "node": ">=20"
   },
@@ -50,7 +50,7 @@
     "@types/passport-google-oauth20": "^2.0.14",
     "@types/web-push": "^3.3.4",
     "eslint": "^8.57.0",
-    "nodemon": "^3.1.7",
+    "nodemon": "^3.1.14",
     "prettier": "^3.2.5",
     "tsx": "^4.10.2",
     "typescript": "^5.4.5"
