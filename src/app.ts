@@ -17,7 +17,7 @@ function resolveCorsOrigin(): cors.CorsOptions['origin'] {
   }
 
   if (env.CLIENT_URLS.length === 0) {
-    return false;
+    return true;
   }
 
   return (origin, callback) => {
