@@ -10,6 +10,7 @@ import { globalApiLimiter } from './middlewares/rate-limit.middleware';
 import { sanitizeRequest } from './middlewares/sanitize.middleware';
 import healthRoutes from './routes/health.routes';
 import apiRoutes from './routes/index';
+import { ForbiddenError } from './utils/AppError';
 
 function resolveCorsOrigin(): cors.CorsOptions['origin'] {
   if (env.NODE_ENV !== 'production') {
@@ -26,7 +27,7 @@ function resolveCorsOrigin(): cors.CorsOptions['origin'] {
       return;
     }
 
-    callback(new Error('CORS origin not allowed'));
+    callback(new ForbiddenError('CORS origin not allowed'));
   };
 }
 
