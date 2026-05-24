@@ -3,6 +3,7 @@ FROM node:20-slim AS build
 WORKDIR /app
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 COPY package*.json ./
 RUN npm install
@@ -15,7 +16,7 @@ FROM node:20-slim
 WORKDIR /app
 
 # Install Chromium and required system dependencies for Puppeteer
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     fonts-liberation \
     libnss3 \
@@ -35,6 +36,7 @@ COPY package*.json ./
 
 # Skip downloading Chrome binary since we will use the system-installed Chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 RUN npm install --omit=dev
 
