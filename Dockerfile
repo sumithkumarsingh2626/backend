@@ -2,6 +2,8 @@ FROM node:20-slim AS build
 
 WORKDIR /app
 
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
 COPY package*.json ./
 RUN npm install
 
