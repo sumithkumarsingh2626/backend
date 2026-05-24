@@ -8,7 +8,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(5000),
 
-  CLIENT_URL: z.string().optional(),
+  CLIENT_URL: z.string().default('http://localhost:3000'),
   MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
   REDIS_URL: z.string().default('redis://127.0.0.1:6379'),
   REDIS_ENABLED: z
@@ -50,6 +50,8 @@ const envSchema = z.object({
   TWILIO_API_KEY_SECRET: z.string().optional(),
   TWILIO_SMS_FROM: z.string().optional(),
   TWILIO_WHATSAPP_FROM: z.string().optional(),
+  
+  RESEND_API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema> & {
@@ -84,10 +86,15 @@ export const env: Env = (() => {
     );
   }
 
-  const clientUrls = (data.CLIENT_URL ?? '')
+  const clientUrls = data.CLIENT_URL
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
+
+  if (data.NODE_ENV === 'production' && clientUrls.length === 0) {
+    console.error('Invalid environment: CLIENT_URL must be set in production.');
+    process.exit(1);
+  }
 
   return {
     ...data,

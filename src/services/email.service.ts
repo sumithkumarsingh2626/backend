@@ -1,6 +1,8 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { env } from '../configs/env';
 import { logger } from '../utils/logger';
+
+const resend = new Resend(env.RESEND_API_KEY);
 
 interface PriceDropEmailInput {
   to: string;
@@ -26,40 +28,25 @@ function formatCurrency(value: number, currency: string): string {
   }
 }
 
-function createTransport(): nodemailer.Transporter | null {
-  if (!env.EMAIL_USER || !env.EMAIL_PASS) {
-    logger.warn('Email credentials missing. Outbound mail will be logged instead of sent.');
-    return null;
-  }
-
-  return nodemailer.createTransport({
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT,
-    secure: Boolean(env.SMTP_SECURE ?? env.SMTP_PORT === 465),
-    auth: {
-      user: env.EMAIL_USER,
-      pass: env.EMAIL_PASS,
-    },
-  });
-}
-
-async function sendMail(to: string, subject: string, text: string, html: string): Promise<void> {
-  const transport = createTransport();
-
-  if (!transport) {
-    logger.info(`Email skipped (not configured) -> ${to}: ${subject}`);
-    logger.debug(text);
+async function sendMail(to: string, subject: string, html: string): Promise<void> {
+  if (!env.RESEND_API_KEY) {
+    logger.warn('RESEND_API_KEY missing. Email skipped.');
+    logger.debug(`Email to ${to}: ${subject}`);
     return;
   }
 
   try {
-    await transport.sendMail({
-      from: env.EMAIL_FROM ?? env.EMAIL_USER,
+    const { error } = await resend.emails.send({
+      from: env.EMAIL_FROM ?? 'onboarding@resend.dev',
       to,
       subject,
-      text,
       html,
     });
+
+    if (error) {
+      logger.error(`Failed to send email to ${to}: ${error.message}`);
+      throw new Error(error.message);
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error(`Failed to send email to ${to}: ${message}`);
@@ -73,8 +60,11 @@ export async function sendOtpEmail(
   purpose: 'verification' | 'password_reset',
 ): Promise<void> {
   const subject =
-    purpose === 'verification' ? 'Verify your Price Drop account' : 'Reset your Price Drop password';
-  const title = purpose === 'verification' ? 'Confirm your account' : 'Password reset request';
+    purpose === 'verification'
+      ? 'Verify your Price Drop account'
+      : 'Reset your Price Drop password';
+  const title =
+    purpose === 'verification' ? 'Confirm your account' : 'Password reset request';
   const actionLine =
     purpose === 'verification'
       ? 'Use this OTP to complete your registration.'
@@ -84,8 +74,7 @@ export async function sendOtpEmail(
     await sendMail(
       to,
       subject,
-      `${title}\nYour OTP is ${otp}. ${actionLine}`,
-    `
+      `
       <div style="font-family:Arial,sans-serif;background:#07120f;padding:32px;color:#e5fff4">
         <div style="max-width:560px;margin:0 auto;background:#0d1f19;border:1px solid #1f5c47;border-radius:20px;padding:32px">
           <p style="margin:0 0 8px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#7ae5b2">Price Drop Alert</p>
@@ -97,13 +86,13 @@ export async function sendOtpEmail(
           <p style="margin:0;font-size:13px;color:#8fb7a5">This code expires soon. If you did not request it, you can ignore this email.</p>
         </div>
       </div>
-    `,
+      `,
     );
   } catch (error) {
+    logger.error(`Registration OTP email failed for ${to}: ${error instanceof Error ? error.message : String(error)}`);
     if (env.NODE_ENV === 'production') {
       throw error;
     }
-
     logger.warn(`[DEV] OTP for ${to} (${purpose}): ${otp}`);
   }
 }
@@ -115,7 +104,6 @@ export async function sendPriceDropEmail(input: PriceDropEmailInput): Promise<vo
   await sendMail(
     input.to,
     `${input.title} dropped to ${newPriceLabel}`,
-    `${input.title} at ${input.storeName} dropped from ${oldPriceLabel} to ${newPriceLabel} (${input.percentageDrop.toFixed(2)}%). Buy now: ${input.productUrl}`,
     `
       <div style="font-family:Arial,sans-serif;background:#07120f;padding:32px;color:#e5fff4">
         <div style="max-width:620px;margin:0 auto;background:#0d1f19;border:1px solid #1f5c47;border-radius:24px;overflow:hidden">
