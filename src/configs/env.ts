@@ -9,6 +9,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(5000),
 
   CLIENT_URL: z.string().default('http://localhost:3000'),
+  BREVO_API_KEY: z.string().optional(),
   MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
   REDIS_URL: z.string().default('redis://127.0.0.1:6379'),
   REDIS_ENABLED: z
@@ -58,6 +59,7 @@ export type Env = z.infer<typeof envSchema> & {
   REDIS_ENABLED: boolean;
   JWT_SECRET: string;
   CLIENT_URLS: string[];
+  BREVO_API_KEY?: string;
 };
 
 export const env: Env = (() => {

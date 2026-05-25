@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import * as SibApiV3Sdk from '@getbrevo/brevo';
 import { env } from '../configs/env';
 import { logger } from '../utils/logger';
 
@@ -26,40 +26,34 @@ function formatCurrency(value: number, currency: string): string {
   }
 }
 
-function createTransport(): nodemailer.Transporter | null {
-  if (!env.EMAIL_USER || !env.EMAIL_PASS) {
-    logger.warn('Email credentials missing. Outbound mail will be logged instead of sent.');
+function createBrevoClient(): SibApiV3Sdk.TransactionalEmailsApi | null {
+  if (!env.BREVO_API_KEY) {
+    logger.warn('BREVO_API_KEY missing. Outbound mail will be logged instead of sent.');
     return null;
   }
 
-  return nodemailer.createTransport({
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT,
-    secure: Boolean(env.SMTP_SECURE ?? env.SMTP_PORT === 465),
-    auth: {
-      user: env.EMAIL_USER,
-      pass: env.EMAIL_PASS,
-    },
-  });
+  const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+  apiInstance.setApiKey(SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey, env.BREVO_API_KEY);
+  return apiInstance;
 }
 
-async function sendMail(to: string, subject: string, text: string, html: string): Promise<void> {
-  const transport = createTransport();
+async function sendMail(to: string, subject: string, html: string): Promise<void> {
+  const client = createBrevoClient();
 
-  if (!transport) {
+  if (!client) {
     logger.info(`Email skipped (not configured) -> ${to}: ${subject}`);
-    logger.debug(text);
     return;
   }
 
+  const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+  sendSmtpEmail.to = [{ email: to }];
+  sendSmtpEmail.sender = { email: env.EMAIL_FROM ?? 'bittukumarsingh200214@gmail.com' };
+  sendSmtpEmail.subject = subject;
+  sendSmtpEmail.htmlContent = html;
+
   try {
-    await transport.sendMail({
-      from: env.EMAIL_FROM ?? env.EMAIL_USER,
-      to,
-      subject,
-      text,
-      html,
-    });
+    await client.sendTransacEmail(sendSmtpEmail);
+    logger.info(`Email sent to ${to}: ${subject}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error(`Failed to send email to ${to}: ${message}`);
@@ -73,8 +67,11 @@ export async function sendOtpEmail(
   purpose: 'verification' | 'password_reset',
 ): Promise<void> {
   const subject =
-    purpose === 'verification' ? 'Verify your Price Drop account' : 'Reset your Price Drop password';
-  const title = purpose === 'verification' ? 'Confirm your account' : 'Password reset request';
+    purpose === 'verification'
+      ? 'Verify your Price Drop account'
+      : 'Reset your Price Drop password';
+  const title =
+    purpose === 'verification' ? 'Confirm your account' : 'Password reset request';
   const actionLine =
     purpose === 'verification'
       ? 'Use this OTP to complete your registration.'
@@ -84,7 +81,6 @@ export async function sendOtpEmail(
     await sendMail(
       to,
       subject,
-      `${title}\nYour OTP is ${otp}. ${actionLine}`,
       `
       <div style="font-family:Arial,sans-serif;background:#07120f;padding:32px;color:#e5fff4">
         <div style="max-width:560px;margin:0 auto;background:#0d1f19;border:1px solid #1f5c47;border-radius:20px;padding:32px">
@@ -115,7 +111,6 @@ export async function sendPriceDropEmail(input: PriceDropEmailInput): Promise<vo
   await sendMail(
     input.to,
     `${input.title} dropped to ${newPriceLabel}`,
-    `${input.title} at ${input.storeName} dropped from ${oldPriceLabel} to ${newPriceLabel} (${input.percentageDrop.toFixed(2)}%). Buy now: ${input.productUrl}`,
     `
       <div style="font-family:Arial,sans-serif;background:#07120f;padding:32px;color:#e5fff4">
         <div style="max-width:620px;margin:0 auto;background:#0d1f19;border:1px solid #1f5c47;border-radius:24px;overflow:hidden">
