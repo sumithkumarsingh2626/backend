@@ -13,6 +13,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@getbrevo/brevo": "^5.0.4",
     "axios": "^1.6.8",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.7.8",
