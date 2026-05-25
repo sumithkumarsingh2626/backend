@@ -1,4 +1,3 @@
-import * as SibApiV3Sdk from '@getbrevo/brevo';
 import { env } from '../configs/env';
 import { logger } from '../utils/logger';
 
@@ -26,39 +25,35 @@ function formatCurrency(value: number, currency: string): string {
   }
 }
 
-function createBrevoClient(): SibApiV3Sdk.TransactionalEmailsApi | null {
+async function sendMail(to: string, subject: string, html: string): Promise<void> {
   if (!env.BREVO_API_KEY) {
     logger.warn('BREVO_API_KEY missing. Outbound mail will be logged instead of sent.');
-    return null;
-  }
-
-  const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-  apiInstance.setApiKey(SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey, env.BREVO_API_KEY);
-  return apiInstance;
-}
-
-async function sendMail(to: string, subject: string, html: string): Promise<void> {
-  const client = createBrevoClient();
-
-  if (!client) {
     logger.info(`Email skipped (not configured) -> ${to}: ${subject}`);
     return;
   }
 
-  const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
-  sendSmtpEmail.to = [{ email: to }];
-  sendSmtpEmail.sender = { email: env.EMAIL_FROM ?? 'bittukumarsingh200214@gmail.com' };
-  sendSmtpEmail.subject = subject;
-  sendSmtpEmail.htmlContent = html;
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'api-key': env.BREVO_API_KEY,
+    },
+    body: JSON.stringify({
+      sender: { email: env.EMAIL_FROM ?? 'bittukumarsingh200214@gmail.com' },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
+  });
 
-  try {
-    await client.sendTransacEmail(sendSmtpEmail);
-    logger.info(`Email sent to ${to}: ${subject}`);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to send email to ${to}: ${message}`);
-    throw error;
+  if (!response.ok) {
+    const error = await response.text();
+    logger.error(`Failed to send email to ${to}: ${error}`);
+    throw new Error(`Email send failed: ${error}`);
   }
+
+  logger.info(`Email sent to ${to}: ${subject}`);
 }
 
 export async function sendOtpEmail(
